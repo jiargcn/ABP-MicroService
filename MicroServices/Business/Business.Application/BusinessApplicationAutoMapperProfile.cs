@@ -6,7 +6,6 @@ namespace Business
     {
         public BusinessApplicationAutoMapperProfile()
         {
-
         }
     }
 }

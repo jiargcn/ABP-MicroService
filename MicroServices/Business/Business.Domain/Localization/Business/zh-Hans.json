@@ -1,5 +1,5 @@
 {
-    "culture": "zh-Hans",
+  "culture": "zh-Hans",
   "texts": {
     "Menu:Home": "首页",
     "Welcome": "欢迎",
@@ -7,7 +7,6 @@
     "Edit": "修改",
     "Delete": "删除",
     "Create": "新增",
-    "Business": "业务",
-    "DataDictionary": "数据字典"
+    "Business": "业务系统"
   }
-  }
+}

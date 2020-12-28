@@ -1,5 +1,4 @@
-﻿using Business;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -11,39 +10,18 @@ using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using StackExchange.Redis;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using Volo.Abp;
-using Volo.Abp.AspNetCore.MultiTenancy;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
 using Volo.Abp.EntityFrameworkCore;
-using Volo.Abp.EntityFrameworkCore.SqlServer;
-using Volo.Abp.Identity;
+using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
-using Volo.Abp.PermissionManagement;
-using Volo.Abp.PermissionManagement.EntityFrameworkCore;
-using Volo.Abp.PermissionManagement.HttpApi;
-using Volo.Abp.Security.Claims;
-using Volo.Abp.SettingManagement.EntityFrameworkCore;
-using Volo.Abp.TenantManagement;
-using Volo.Abp.TenantManagement.EntityFrameworkCore;
 
 namespace WebAppGateway
 {
     [DependsOn(
     typeof(AbpAutofacModule),
-    typeof(AbpAspNetCoreMultiTenancyModule),
-    typeof(AbpIdentityHttpApiModule),
-    typeof(BusinessHttpApiModule),
-    typeof(AbpEntityFrameworkCoreSqlServerModule),
-    typeof(AbpPermissionManagementEntityFrameworkCoreModule),
-    typeof(AbpPermissionManagementApplicationModule),
-    typeof(AbpPermissionManagementHttpApiModule),
-    typeof(AbpSettingManagementEntityFrameworkCoreModule),
-    typeof(AbpTenantManagementHttpApiModule),
-    typeof(AbpTenantManagementEntityFrameworkCoreModule),
     typeof(AbpAspNetCoreSerilogModule)
     )]
     public class WebAppGatewayHostModule: AbpModule
@@ -56,10 +34,11 @@ namespace WebAppGateway
             var hostingEnvironment = context.Services.GetHostingEnvironment();
 
             ConfigureAuthentication(context, configuration);
-            ConfigureSql();
-            ConfigureRedis(context, configuration, hostingEnvironment);
+            //ConfigureSql();
+            //ConfigureRedis(context, configuration, hostingEnvironment);
             ConfigureCors(context, configuration);
-            ConfigureSwaggerServices(context);
+            //ConfigureSwaggerServices(context);
+            ConfigureLocalization();
             context.Services.AddOcelot(context.Services.GetConfiguration());
         }
 
@@ -72,41 +51,14 @@ namespace WebAppGateway
             app.UseRouting();
             app.UseCors(DefaultCorsPolicyName);
             app.UseAuthentication();
-            app.UseMultiTenancy();
+            app.UseAbpClaimsMap();
             app.UseAuthorization();
 
-            app.Use(async (ctx, next) =>
-            {
-                var currentPrincipalAccessor = ctx.RequestServices.GetRequiredService<ICurrentPrincipalAccessor>();
-                var map = new Dictionary<string, string>()
-                {
-                    { "sub", AbpClaimTypes.UserId },
-                    { "role", AbpClaimTypes.Role },
-                    { "email", AbpClaimTypes.Email },
-                    { "name", AbpClaimTypes.UserName },
-                    { "tenantid", AbpClaimTypes.TenantId }
-                };
-                var mapClaims = currentPrincipalAccessor.Principal.Claims.Where(p => map.Keys.Contains(p.Type)).ToList();
-                currentPrincipalAccessor.Principal.AddIdentity(new ClaimsIdentity(mapClaims.Select(p => new Claim(map[p.Type], p.Value, p.ValueType, p.Issuer))));
-
-                await next();
-            });
-
-            app.UseSwagger();
-            app.UseSwaggerUI(options =>
-            {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Business Service API");
-            });
-
-            app.MapWhen(
-                ctx => ctx.Request.Path.ToString().StartsWith("/api/abp/") ||
-                       ctx.Request.Path.ToString().StartsWith("/Abp/"),
-                app2 =>
-                {
-                    app2.UseRouting();
-                    app2.UseMvcWithDefaultRouteAndArea();
-                }
-            );
+            //app.UseSwagger();
+            //app.UseSwaggerUI(options =>
+            //{
+            //    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Business Service API");
+            //});
 
             app.UseOcelot().Wait();
             app.UseAbpSerilogEnrichers();
@@ -131,6 +83,20 @@ namespace WebAppGateway
                     options.SwaggerDoc("v1", new OpenApiInfo { Title = "WebAppGateway Service API", Version = "v1" });
                     options.DocInclusionPredicate((docName, description) => true);
                 });
+        }
+
+        private void ConfigureLocalization()
+        {
+            Configure<AbpLocalizationOptions>(options =>
+            {
+                options.Languages.Add(new LanguageInfo("cs", "cs", "Čeština"));
+                options.Languages.Add(new LanguageInfo("en", "en", "English"));
+                options.Languages.Add(new LanguageInfo("pt-BR", "pt-BR", "Português"));
+                options.Languages.Add(new LanguageInfo("ru", "ru", "Русский"));
+                options.Languages.Add(new LanguageInfo("tr", "tr", "Türkçe"));
+                options.Languages.Add(new LanguageInfo("zh-Hans", "zh-Hans", "简体中文"));
+                options.Languages.Add(new LanguageInfo("zh-Hant", "zh-Hant", "繁體中文"));
+            });
         }
 
         private void ConfigureSql()

@@ -5,6 +5,7 @@ using Volo.Abp.PermissionManagement;
 namespace Business
 {
     [DependsOn(
+        typeof(BusinessDomainModule),
         typeof(AbpDddApplicationModule),
         typeof(AbpPermissionManagementApplicationContractsModule)
     )]
